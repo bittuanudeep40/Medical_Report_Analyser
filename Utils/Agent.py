@@ -1,25 +1,25 @@
+# Utils/Agent.py (Final Streamlit Version)
 from langchain_core.prompts import PromptTemplate
 from langchain_groq import ChatGroq
-import os
-from dotenv import load_dotenv
+import streamlit as st
 
-load_dotenv() 
-api_key = os.environ.get("GROQ_API_KEY")
+# Get the API key from Streamlit's secrets manager
+api_key = st.secrets.get("GROQ_API_KEY")
 
 
 class Agent:
-    def __init__(self, medical_report = None, role = None, extra_info = None):
+    def __init__(self, medical_report=None, role=None, extra_info=None):
         self.medical_report = medical_report
         self.role = role
         self.extra_info = extra_info
         self.prompt_template = self.create_prompt_template()
 
         self.model = ChatGroq(
-            api_key = api_key,
-            model = "llama-3.3-70b-versatile",
+            api_key=api_key,
+            model="llama-3.3-70b-versatile",
             temperature=0.0
         )
-    
+
     def create_prompt_template(self):
         if self.role == "MultidisciplinaryTeam":
             templates = f"""Act like a multidisciplinary team of healthcare professionals.
@@ -40,7 +40,7 @@ class Agent:
                     Focus: Determine if there are any subtle signs of cardiac issues that could explain the patient’s symptoms. Rule out any underlying heart conditions, such as arrhythmias or structural abnormalities, that might be missed on routine testing.
                     Recommendation: Provide guidance on any further cardiac testing or monitoring needed to ensure there are no hidden heart-related concerns. Suggest potential management strategies if a cardiac issue is identified.
                     Please only return the possible causes of the patient's symptoms and the recommended next steps.
-                    Medical Report: {medical_report}
+                    Medical Report: {{medical_report}}
                 """,
                 "Psychologist": """
                     Act like a psychologist. You will receive a patient's report.
@@ -48,7 +48,7 @@ class Agent:
                     Focus: Identify any potential mental health issues, such as anxiety, depression, or trauma, that may be affecting the patient's well-being.
                     Recommendation: Offer guidance on how to address these mental health concerns, including therapy, counseling, or other interventions.
                     Please only return the possible mental health issues and the recommended next steps.
-                    Patient's Report: {medical_report}
+                    Patient's Report: {{medical_report}}
                 """,
                 "Pulmonologist": """
                     Act like a pulmonologist. You will receive a patient's report.
@@ -56,12 +56,12 @@ class Agent:
                     Focus: Identify any potential respiratory issues, such as asthma, COPD, or lung infections, that may be affecting the patient's breathing.
                     Recommendation: Offer guidance on how to address these respiratory concerns, including pulmonary function tests, imaging studies, or other interventions.
                     Please only return the possible respiratory issues and the recommended next steps.
-                    Patient's Report: {medical_report}"""
+                    Patient's Report: {{medical_report}}"""
             }
 
             selected_templates = templates[self.role]
             return PromptTemplate.from_template(selected_templates)
-        
+
     def run(self):
         print(f"{self.role} is running.....")
         prompt = self.prompt_template.format(medical_report=self.medical_report)
@@ -72,27 +72,28 @@ class Agent:
         except Exception as e:
             print(f"Error Occurred: ", e)
             return None
-    
+
+
 class Cardiologist(Agent):
     def __init__(self, medical_report):
         super().__init__(medical_report, "Cardiologist")
 
-    
+
 class Psychologist(Agent):
     def __init__(self, medical_report):
         super().__init__(medical_report, "Psychologist")
 
-        
+
 class Pulmonologist(Agent):
     def __init__(self, medical_report):
         super().__init__(medical_report, "Pulmonologist")
 
-    
+
 class MultidisciplinaryTeam(Agent):
     def __init__(self, cardiologist_report, psychologist_report, pulmonologist_report):
         extra_info = {
-            "cardiologist_report":cardiologist_report, 
-            "psychologist_report":psychologist_report,
-            "pulmonologist_report":pulmonologist_report
+            "cardiologist_report": cardiologist_report,
+            "psychologist_report": psychologist_report,
+            "pulmonologist_report": pulmonologist_report
         }
-        super().__init__(role = "MultidisciplinaryTeam", extra_info=extra_info)
+        super().__init__(role="MultidisciplinaryTeam", extra_info=extra_info)

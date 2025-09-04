@@ -1,61 +1,59 @@
-from flask import Flask, request, render_template, redirect, url_for
+# app.py (Final Streamlit Version)
+import streamlit as st
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from Utils.Agent import Cardiologist, Psychologist, Pulmonologist, MultidisciplinaryTeam
 import os
 
-app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-RESULT_PATH = 'results/final_diagnosis.txt'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(os.path.dirname(RESULT_PATH), exist_ok=True)
+# --- Page Configuration ---
+st.set_page_config(
+    page_title="MediVerse AI",
+    page_icon="⚕️",
+    layout="centered"
+)
 
+# --- UI Elements ---
+st.title("⚕️ MediVerse AI")
+st.markdown("Welcome to the future of health analysis. Upload a medical report to get clear insights and potential risk factors in seconds.")
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        file = request.files['report']
-        if file and file.filename.endswith('.txt'):
-            filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-            file.save(filepath)
+# File uploader widget
+uploaded_file = st.file_uploader("Drag & drop or click to upload your medical report", type=["txt"])
 
-            
+# --- Main Logic ---
+if uploaded_file is not None:
+    # Read the content of the uploaded file
+    medical_report = uploaded_file.read().decode("utf-8")
+    
+    st.info("Analyzing the medical report... This may take a moment.")
 
-            with open(filepath, "r", encoding="utf-8") as f:
-                medical_report = f.read()
+    with st.spinner('Running diagnostics with AI specialists...'):
+        # Run individual specialists concurrently
+        agents = {
+            "Cardiologist": Cardiologist(medical_report),
+            "Psychologist": Psychologist(medical_report),
+            "Pulmonologist": Pulmonologist(medical_report)
+        }
 
-            # Run individual specialists
-            agents = {
-                "Cardiologist": Cardiologist(medical_report),
-                "Psychologist": Psychologist(medical_report),
-                "Pulmonologist": Pulmonologist(medical_report)
-            }
-
-            responses = {}
-            with ThreadPoolExecutor() as executor:
-                futures = {executor.submit(agent.run): name for name, agent in agents.items()}
-                for future in as_completed(futures):
-                    agent_name = futures[future]
+        responses = {}
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(agent.run): name for name, agent in agents.items()}
+            for future in as_completed(futures):
+                agent_name = futures[future]
+                try:
                     responses[agent_name] = future.result()
+                except Exception as e:
+                    st.error(f"An error occurred with the {agent_name} agent: {e}")
+                    # Stop execution if an agent fails
+                    st.stop()
 
-            # Run multidisciplinary agent
-            team_agent = MultidisciplinaryTeam(
-                cardiologist_report=responses["Cardiologist"],
-                psychologist_report=responses["Psychologist"],
-                pulmonologist_report=responses["Pulmonologist"]
-            )
-            final_diagnosis = team_agent.run()
+        # Run multidisciplinary agent
+        team_agent = MultidisciplinaryTeam(
+            cardiologist_report=responses.get("Cardiologist", ""),
+            psychologist_report=responses.get("Psychologist", ""),
+            pulmonologist_report=responses.get("Pulmonologist", "")
+        )
+        final_diagnosis = team_agent.run()
 
-            # Save the diagnosis
-            final_diagnosis_text = "### Final Diagnosis:\n\n" + final_diagnosis
-            with open(RESULT_PATH, 'w') as result_file:
-                result_file.write(final_diagnosis_text)
-
-            return render_template("index.html", diagnosis=final_diagnosis_text)
-
-        return render_template("index.html", error="Please upload a valid .txt file.")
-
-    return render_template("index.html")
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Display the final diagnosis
+    st.success("Analysis Complete!")
+    st.subheader("Final Diagnosis")
+    st.markdown(final_diagnosis)

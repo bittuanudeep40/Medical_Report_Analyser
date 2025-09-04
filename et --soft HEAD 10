@@ -1,0 +1,17 @@
+[33mcommit aae224686b3fd11f446dbaefd645b1cfc0d14c88[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: 2211cs040074 <2211cs040074@mallareddyuniversity.ac.in>
+Date:   Tue Sep 2 12:29:38 2025 +0530
+
+    feat: Remove API key and use environment variables
+
+[33mcommit e4b7640d1f30fa594dc335f9e40bad2884f8088d[m
+Author: 2211cs040074 <2211cs040074@mallareddyuniversity.ac.in>
+Date:   Tue Sep 2 12:21:28 2025 +0530
+
+    Initial commit
+
+[33mcommit 38ce50bba30e499892296f81dd5a6403f5ab3262[m
+Author: 2211cs040074 <2211cs040074@mallareddyuniversity.ac.in>
+Date:   Tue Aug 26 12:04:59 2025 +0530
+
+    Initial commit
